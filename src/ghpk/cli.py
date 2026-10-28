@@ -41,7 +41,7 @@ def run(arguments):
             message('Нет настроенных активных репозиториев. Используйте: ghpk install автор/репозиторий')
             return 0
         cache = {} if command == 'update' else read_json(store.releases, {})
-        counts = dict(updated=0, installed=0, unchanged=0, errors=0)
+        counts = dict(updated=0, installed=0, unchanged=0, errors=0, available=0, unknown=0)
         for index, entry in enumerate(selected, 1):
             repo = entry['repo']
             message(f'[{index}/{len(selected)}] https://github.com/{repo}')
@@ -51,6 +51,11 @@ def run(arguments):
                     cache[repo] = asset
                     package = entry.get('package') or state.get(repo, {}).get('package')
                     version = packages.installed_version(package) if package else None
+                    available = packages.update_available(asset, version, state.get(repo, {}))
+                    if available is None:
+                        counts['unknown'] += 1
+                    elif available:
+                        counts['available'] += 1
                     message(f"Пол: {repo} — релиз {asset['tag']}; установлено: {version or 'не определено'}.")
                     continue
                 asset = github.latest(entry, arch) if command == 'install' else cache.get(repo)
@@ -73,6 +78,9 @@ def run(arguments):
             with stage('Запись сведений о релизах'):
                 save_json(store.releases, cache)
             message(f"Обработано репозиториев: {len(selected)}. Успешно: {len(cache)}. Ошибок: {counts['errors']}.")
+            message(f"Доступно обновлений: {counts['available']}.")
+            if counts['unknown']:
+                message(f"Не удалось определить наличие обновления: {counts['unknown']}.")
         else:
             summary(counts)
         return int(counts['errors'] != 0)

@@ -115,6 +115,16 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(latest.call_count, 1)
             install.assert_called_once()
 
+    def test_update_summary_counts(self):
+        self.store.config.write_text(json.dumps({'repos': [
+            {'repo': repo, 'package': 'app'} for repo in ['a/b', 'c/d', 'e/f']]}))
+        release = dict(self.release, tag='v2.0')
+        with patch.object(github, 'latest', return_value=release), patch.object(
+                packages, 'installed_version', side_effect=['1.0-1', '2.0-1', None]), patch.object(cli, 'message') as output:
+            self.assertEqual(cli.run(['update']), 0)
+        output.assert_any_call('Доступно обновлений: 1.')
+        output.assert_any_call('Не удалось определить наличие обновления: 1.')
+
     def test_upgrade_requires_update(self):
         self.store.config.write_text(json.dumps({'repos': [{'repo': 'a/b'}]}))
         with patch.object(packages, 'install_asset') as install:
@@ -134,6 +144,18 @@ class CommandTests(unittest.TestCase):
 
 
 class PackageTests(unittest.TestCase):
+    def test_update_availability(self):
+        for tag, current, expected in [
+            ('v0.12.0', '0.12.0-1', False),
+            ('v0.13.0', '0.12.0-1', True),
+            ('v0.9.0', '0.12.0-1', False),
+            ('v0.12.0', None, None),
+            ('stable', '0.12.0-1', None),
+        ]:
+            with self.subTest(tag=tag, current=current):
+                self.assertIs(packages.update_available(dict(tag=tag), current, {}), expected)
+
+
     def test_real_deb_metadata_and_install_handoff(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)

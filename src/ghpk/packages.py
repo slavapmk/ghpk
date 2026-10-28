@@ -1,5 +1,6 @@
 """DEB download, integrity validation and APT installation."""
 import hashlib
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -14,6 +15,23 @@ def installed_version(package):
                             capture_output=True, text=True)
     lines = result.stdout.splitlines()
     return lines[1] if result.returncode == 0 and len(lines) > 1 and lines[0] == "install ok installed" else None
+
+
+def update_available(asset, current, previous):
+    """Compare a version-like release tag without downloading the DEB."""
+    if current is None:
+        return None
+    if (asset.get("digest") and asset["digest"] == previous.get("digest")
+            and current == previous.get("version")):
+        return False
+    tag = asset.get("tag", "")
+    candidate = tag[1:] if tag.startswith("v") else tag
+    if not re.fullmatch(r"[0-9][0-9A-Za-z.+:~\-]*", candidate):
+        return None
+    return subprocess.run(
+        ["dpkg", "--compare-versions", candidate, "gt", current],
+        check=False,
+    ).returncode == 0
 
 
 def install_asset(entry, asset, arch, state):
