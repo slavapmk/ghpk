@@ -92,3 +92,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
 Тесты не требуют сети и не устанавливают программы. Модули: `cli.py` — команды, `github.py` — релизы и выбор файлов, `packages.py` — проверка и установка DEB, `storage.py` — конфигурация и состояние, `ui.py` — сообщения и tqdm.
+
+---
+
+Full Generated
