@@ -125,6 +125,23 @@ class CommandTests(unittest.TestCase):
         output.assert_any_call('Доступно обновлений: 1.')
         output.assert_any_call('Не удалось определить наличие обновления: 1.')
 
+    def test_upgrade_skips_current_and_newer_without_download(self):
+        self.store.config.write_text(json.dumps({'repos': [{'repo': 'a/b', 'package': 'app'}]}))
+        release = dict(self.release, tag='v0.12.0')
+        self.store.releases.write_text(json.dumps({'a/b': release}))
+        for version in ['0.12.0-1', '0.13.0-1']:
+            with self.subTest(version=version), patch.object(packages, 'installed_version', return_value=version), patch.object(packages, 'install_asset') as install:
+                self.assertEqual(cli.run(['upgrade']), 0)
+                install.assert_not_called()
+
+    def test_upgrade_installs_new_missing_and_unknown_versions(self):
+        self.store.config.write_text(json.dumps({'repos': [{'repo': 'a/b', 'package': 'app'}]}))
+        for tag, version in [('v0.13.0', '0.12.0-1'), ('v0.13.0', None), ('stable', '0.12.0-1')]:
+            self.store.releases.write_text(json.dumps({'a/b': dict(self.release, tag=tag)}))
+            with self.subTest(tag=tag, version=version), patch.object(packages, 'installed_version', return_value=version), patch.object(packages, 'install_asset', return_value='updated') as install:
+                self.assertEqual(cli.run(['upgrade']), 0)
+                install.assert_called_once()
+
     def test_upgrade_requires_update(self):
         self.store.config.write_text(json.dumps({'repos': [{'repo': 'a/b'}]}))
         with patch.object(packages, 'install_asset') as install:

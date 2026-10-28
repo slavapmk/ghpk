@@ -61,6 +61,14 @@ def run(arguments):
                 asset = github.latest(entry, arch) if command == 'install' else cache.get(repo)
                 if not asset or asset.get('architecture') != arch or asset.get('pattern') != entry.get('asset'):
                     raise ValueError('Сведения о релизе отсутствуют или конфигурация изменилась. Выполните ghpk update.')
+                if command == 'upgrade':
+                    previous = state.get(repo, {})
+                    package = entry.get('package') or previous.get('package')
+                    version = packages.installed_version(package) if package else None
+                    if packages.update_available(asset, version, previous) is False:
+                        message(f"{package}: обновление не требуется (установлено: {version}, релиз: {asset['tag']}).")
+                        counts['unchanged'] += 1
+                        continue
                 result = packages.install_asset(entry, asset, arch, state)
                 if command == 'install':
                     entry['enabled'] = True
