@@ -1,0 +1,12 @@
+{
+  "repos": [
+    {"repo": "storytold/wordcraft"},
+    {"repo": "storytold/filmcraft"},
+    {
+      "repo": "rustdesk/rustdesk",
+      "asset": "^rustdesk-[0-9].*-x86_64\\.deb$",
+      "package": "rustdesk",
+      "enabled": false
+    }
+  ]
+}

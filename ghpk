@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+"""Run from the source checkout or the system installation."""
+from pathlib import Path
+import runpy
+import sys
+root = Path(__file__).resolve().parent
+sys.path.insert(0, str(root / 'src' if (root / 'src' / 'ghpk').is_dir() else Path('/usr/local/lib/ghpk')))
+runpy.run_module('ghpk', run_name='__main__')
